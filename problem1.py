@@ -141,11 +141,11 @@ if __name__ == "__main__":
     CHUNK = 512
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
-    RATE = 11025
+    RATE = 11025*4
     RECORD_SECONDS = 15
     p = pyaudio.PyAudio()
 
     filename="EE310_HW7_1.wav"
-    generate(False,False,filename)
+    generate(True,True,filename)
     #play_audio(filename)
     

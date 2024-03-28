@@ -17,25 +17,32 @@ def plot_audio(filename):
         wave_data=np.frombuffer(data, dtype=np.int16)
         #stream.write(data)
         data = wf.readframes(CHUNK)
-        frequencies, power_spectrum = periodogram(wave_data, fs=RATE)
-        print(len(wave_data))
+        frequencies, power_spectrum = periodogram(wave_data, fs=RATE,scaling="spectrum")
+        #print(len(wave_data))
         if len(wave_data)==CHUNK:
-             PSdata_list.append(power_spectrum)
+             if len(PSdata_list)<800:
+                print(len(PSdata_list))
+                PSdata_list.append(power_spectrum)
 
+    
+    
     PSdata=np.vstack(PSdata_list)
+    heatmap = plt.imshow(PSdata, interpolation='nearest', animated=False,aspect=0.2)
+    plt.show()
+    
+
     x=np.arange(np.shape(PSdata)[1])
     y=np.arange(np.shape(PSdata)[0])
     x, y = np.meshgrid(x, y)
     # Initial setup
-    fig, ax = plt.subplots()
-    # heatmap = plt.imshow(PSdata, interpolation='nearest', animated=False)
-    # # Creating a 3D subplot
-    ax = fig.add_subplot(111, projection='3d')
+
 
     # Plotting a surface
-    surf = ax.plot_surface(x, y, PSdata, cmap='viridis')
+    
+    plt.contour(x, y, PSdata)
+    plt.colorbar()  # To show the scale of values
     # Adding title and labels
-    plt.xticks=np.linspace(0,6000,16)
+    #plt.xticks=np.linspace(0,6000,16)
     plt.title('Spectrograph')
     plt.xlabel('freq')
     plt.ylabel('time')
@@ -174,21 +181,23 @@ def record_audio(fname,rec=False,log=False):
         data = stream.read(CHUNK)
         nd=np.frombuffer(data, dtype=np.int16)
         maxd=np.max(nd)
-        frequencies, power_spectrum = periodogram(nd, fs=RATE)
-        #print(maxd)
+        #frequencies, power_spectrum = periodogram(nd, fs=RATE)
+        print(maxd)
 
 #update plot
-        line1.set_xdata(frequencies)
-        line1.set_ydata(power_spectrum)
-        fig.canvas.draw()
-        fig.canvas.flush_events()
+        # line1.set_xdata(frequencies)
+        # line1.set_ydata(power_spectrum)
+        # fig.canvas.draw()
+        # fig.canvas.flush_events()
         
         if rec:
-            if abs(maxd)>5000:
+            if abs(maxd)>2000:
                 start=True
                 stop_time=time.time()+10
                 print("Start recording.")
+                frames=[]
                 while time.time()<stop_time:
+                    data = stream.read(CHUNK)
                     print(stop_time-time.time())
                     frames.append(data)
 
@@ -198,6 +207,19 @@ def record_audio(fname,rec=False,log=False):
     stream.stop_stream()
     stream.close()
     
+    print("Writting to file")
+    bytestream = b''.join(frames)
+    print("Len=",len(bytestream))
+    with wave.open(fname, 'wb') as wf:
+            wf.setnchannels(CHANNELS)
+            wf.setframerate(RATE)
+            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+            wf.writeframes(bytestream)
+            wf.close()
+    print("Finished writting to file")
+
+    
+
 if __name__ == "__main__":
     CHUNK = 512
     FORMAT = pyaudio.paInt16
@@ -206,18 +228,19 @@ if __name__ == "__main__":
     RECORD_SECONDS = 15
     p = pyaudio.PyAudio()
 
-    #rec_filename="new_rec.wav"
-    #record_audio(rec_filename,False,False)
+    rec_filename="new_rec.wav"
+    #record_audio(rec_filename,True,False)
 
-    filename="max_smooth_tone.wav"
+    #filename="max_smooth_tone.wav"
     #filename="colby_smooth_tone.wav"
     #filename="michael_generated_waveform_windowed.WAV"
     #filename="EE310_HW7_1.wav"
-    #filename="new_rec.wav"
-    play_audio(filename)
+    filename="new_rec.wav"
+    #play_audio(filename)
     
     
-    #analyze_audio()
+    plot_audio(filename)
+    input("press any key to quit")
 
     p.terminate()
 
