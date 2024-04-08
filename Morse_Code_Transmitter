@@ -1,0 +1,51 @@
+import pyaudio
+import wave
+import math
+import matplotlib.pyplot as plt
+import numpy as np
+import time 
+
+#=============== GLOBALS
+RATE =11025
+CHUNK = 512
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RECORD_SECONDS = 15
+
+# Morse Code Dictionary
+morse_code_dict = {
+    'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.', 'G': '--.', 'H': '....', 
+    'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 
+    'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-', 
+    'Y': '-.--', 'Z': '--..',
+    '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', 
+    '8': '---..', '9': '----.', '0': '-----', ', ': '--..--', '.': '.-.-.-', '?': '..--..', '/': '-..-.', 
+    '-': '-....-', '(': '-.--.', ')': '-.--.-'
+}
+   
+# Function to convert text to Morse code
+def text_to_morse(text):
+    morse_code = ''
+    for char in text.upper():
+        if char in morse_code_dict:
+            morse_code += morse_code_dict[char] + ' '
+        elif char == ' ':
+            morse_code += ' / '  # Use / to indicate space between words
+        else:
+            morse_code += ''  # Ignore characters not in the Morse code dictionary
+    return morse_code.strip()
+
+
+def generate_max_freq(length):
+    wav=np.zeros(length*3)
+    for i in range(length):
+        w=[0,1,-1]
+        np.append(wav,w)
+    return wav
+
+if __name__ == "__main__":
+    p = pyaudio.PyAudio()
+    message="SONIO IS FUN  STOP  BUT NOT AS FUN AS EE310 STOP"
+    filename="EE310_HW8_1.wav"
+    generate(filename)
+    #play_audio(filename)
