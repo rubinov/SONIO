@@ -1,0 +1,7 @@
+numpy
+scipy
+pyaudio
+wave
+matplotlib
+customtkinter
+tkinter
