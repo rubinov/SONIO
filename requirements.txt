@@ -3,4 +3,5 @@ scipy
 pyaudio
 wave
 matplotlib
-pysimplegui
+customtkinter
+tkinter
