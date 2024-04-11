@@ -53,7 +53,7 @@ class Sound_Analyzer_App(ctk.CTk):
         screen_height = root.winfo_screenheight()
 
         # Convert the screen width and height to inches using the actual DPI
-        screen_width_inches = screen_width / screen_dpi
+        screen_width_inches = screen_width / screen_dpi 
         screen_height_inches = screen_height / screen_dpi
 
         print(f"Screen size: {screen_width_inches:.2f} x {screen_height_inches:.2f} inches")
@@ -61,8 +61,8 @@ class Sound_Analyzer_App(ctk.CTk):
         #self.fig_left, (self.ax_left,self.ax_right) = plt.subplots(1, 2, figsize=(20, 10))
         root.destroy()
 
-        sizey=screen_height_inches
-        sizex=screen_width_inches*1.5
+        sizey=380/screen_dpi
+        sizex=560/screen_dpi * 2
         self.fig_left, (self.ax_left,self.ax_right) = plt.subplots(1, 2,figsize=(sizex,sizey),dpi=screen_dpi)
         self.canvas = FigureCanvasTkAgg(self.fig_left, master=self.plots_frame)
         self.canvas.draw()
@@ -84,7 +84,10 @@ class Sound_Analyzer_App(ctk.CTk):
         # Button to update the plots
         self.update_button = ctk.CTkButton(master=self.controls_frame, text='Update Plots', command=self.update_plots)
         self.update_button.grid(row=0, column=2, pady=4, padx=(0, 2))
-        self.chk_Play = ctk.CTkCheckBox(master=self.controls_frame, text="play audio")
+        play_on_load=tk.BooleanVar(value=False)
+        self.chk_Play = ctk.CTkCheckBox(master=self.controls_frame, text="play audio",variable=play_on_load, onvalue=True, offvalue=False)
+        
+
         self.chk_Play.grid(row=0, column=3,padx=(15,15))
 
         # Button to open the file dialog
@@ -211,7 +214,7 @@ class Sound_Analyzer_App(ctk.CTk):
         data = wf.readframes(self.CHUNK)
         wave_data=[]
         data_list=[]
-        # Create scatter plot
+        # read file
         while data:
             wave_data=np.frombuffer(data, dtype=np.int16)
             
@@ -257,13 +260,35 @@ class Sound_Analyzer_App(ctk.CTk):
             self.ax_right.set_title("Random")
             #self.fig_right.colorbar(im, ax=self.ax_right)
         self.canvas.draw()
-        self.play_audio(wav)
+        if  self.play_on_load: 
+            play_audio(wav)
 
 if __name__ == '__main__':
     # Initialize PyAudio
     p = pyaudio.PyAudio()
+    
+    dev_count=p.get_device_count()
+    print("dev count=",dev_count)
+    # Loop through the devices and print their index and name
+    for i in range(dev_count):
+        device_info = p.get_device_info_by_index(i)
+        print(f"Device index: {i}, Device name: {device_info['name']}")
 
+    # Get information about the default input device
+    default_input_info = p.get_default_input_device_info()
+    print("Default Input Device:")
+    print(f"  Name: {default_input_info['name']}")
+    print(f"  Index: {default_input_info['index']}")
+
+    # Get information about the default output device
+    default_output_info = p.get_default_output_device_info()
+    print("\nDefault Output Device:")
+    print(f"  Name: {default_output_info['name']}")
+    print(f"  Index: {default_output_info['index']}")
+    
     app = Sound_Analyzer_App()
     app.mainloop()
 
     p.close()
+    p.terminate()
+
