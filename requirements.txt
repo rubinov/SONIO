@@ -4,4 +4,3 @@ pyaudio
 wave
 matplotlib
 customtkinter
-tkinter

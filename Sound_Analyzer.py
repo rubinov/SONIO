@@ -1,5 +1,7 @@
 ###Sound_Analyzer_TK_GUI
+import ctypes
 from tkinter import filedialog
+import tkinter as tk
 import customtkinter as ctk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -38,8 +40,30 @@ class Sound_Analyzer_App(ctk.CTk):
         self.controls_frame.pack(side='bottom',fill="x", padx=10, pady=10)
 
         #-----------------------------------------------------------------------
+        #determine the size of screen in pixels
+        root = tk.Tk()
+
+        # Get the screen DPI
+        # Get the system's DPI settings
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        screen_dpi = ctypes.windll.user32.GetDpiForSystem()
+        print("screen_dpi=",screen_dpi)
+        # Get the screen width and height in pixels
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+
+        # Convert the screen width and height to inches using the actual DPI
+        screen_width_inches = screen_width / screen_dpi
+        screen_height_inches = screen_height / screen_dpi
+
+        print(f"Screen size: {screen_width_inches:.2f} x {screen_height_inches:.2f} inches")
         # Create figure and axis for the left and right plot
-        self.fig_left, (self.ax_left,self.ax_right) = plt.subplots(1, 2, figsize=(12, 4))
+        #self.fig_left, (self.ax_left,self.ax_right) = plt.subplots(1, 2, figsize=(20, 10))
+        root.destroy()
+
+        sizey=screen_height_inches
+        sizex=screen_width_inches*1.5
+        self.fig_left, (self.ax_left,self.ax_right) = plt.subplots(1, 2,figsize=(sizex,sizey),dpi=screen_dpi)
         self.canvas = FigureCanvasTkAgg(self.fig_left, master=self.plots_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack( expand=True)
@@ -74,8 +98,8 @@ class Sound_Analyzer_App(ctk.CTk):
         self.rec_filename_label.grid(row=3, column=0, pady=4, padx=(0, 2))
         self.rec_filename_input = ctk.CTkEntry(master=self.controls_frame, placeholder_text="test.wav", width=240)
         self.rec_filename_input.grid(row=3, column=1, pady=4, padx=(0, 2))
-        self.update_button = ctk.CTkButton(master=self.controls_frame, text='RECORD', command=self.record_file)
-        self.update_button.grid(row=3, column=2, pady=4, padx=(0, 2))
+        self.btn_record = ctk.CTkButton(master=self.controls_frame, text='RECORD', command=self.record_file)
+        self.btn_record.grid(row=3, column=2, pady=4, padx=(0, 2))
         
         # Initial plots
         x = np.linspace(0, 2 * np.pi, 100)
@@ -91,21 +115,30 @@ class Sound_Analyzer_App(ctk.CTk):
         #self.fig_right.colorbar(im, ax=self.ax_right)
         self.canvas.draw()
 
-    def play_audio(data):
+    def play_audio(self,data):
     # Open an audio stream
-        stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                        channels=wf.getnchannels(),
-                        rate=wf.getframerate(),
+        stream = p.open(format=self.FORMAT,
+                        channels=self.CHANNELS,
+                        rate=self.RATE,
                         output=True)
 
         print(f"Playing ..")
 
         # Read and play audio in chunks
-        while data:
-            stream.write(data)
+
+
+        # Convert the NumPy array to bytes
+        audio_data = data.astype(np.int16).tobytes()
+
+        # Write the audio data to the stream
+        stream.write(audio_data)
+
+        # Close the stream and terminate the PyAudio object
+        stream.stop_stream()
+        stream.close()
 
     def record_file(self):
-        state = self.button_record.cget("text")
+        state = self.btn_record.cget("text")
         print(state)
         self.rec_fname=self.rec_filename_input.get()
         if len(self.rec_fname)==0:
@@ -114,7 +147,7 @@ class Sound_Analyzer_App(ctk.CTk):
         if state=="RECORD":
             print("Recording to in 1sec: ",fname)
             time.sleep(0.5)
-            self.button_record.configure(text="STOP")
+            self.btn_record.configure(text="STOP")
             self.rec_fname=self.rec_filename_input.get()
             # Initialize PyAudio
             self.p = pyaudio.PyAudio()
@@ -147,7 +180,7 @@ class Sound_Analyzer_App(ctk.CTk):
                 wf.writeframes(bytestream)
                 wf.close()
             print("Finished writting to file")
-            self.button_record.configure(text="RECORD")
+            self.btn_record.configure(text="RECORD")
 
     def record(self):
         if self.is_recording:
@@ -199,6 +232,7 @@ class Sound_Analyzer_App(ctk.CTk):
     #update left plot
         left_lim=int(float(self.txt_start_time.get())*self.RATE)
         right_lim=int(float(self.txt_stop_time.get())*self.RATE)
+        print("lim=",left_lim,right_lim)
         wav=self.wav[left_lim:right_lim]
         self.ax_left.clear()
         self.ax_right.clear()
@@ -209,12 +243,8 @@ class Sound_Analyzer_App(ctk.CTk):
             self.ax_left.set_title("Time domain")
             
     #update right plot
-            f, t, Zxx = stft(self.wav, self.RATE, nperseg=500)  # nperseg determines the size of the window
-            # Plot 
-            # data = np.random.rand(200, 200)
-            # self.ax_right.pcolormesh(data, cmap="viridis")
-            # self.ax_right.set_title("Pcolormesh")
-            # self.ax_right.set_aspect("equal")
+            f, t, Zxx = stft(wav, self.RATE, nperseg=500)  # nperseg determines the size of the window
+            # Plot
             im = self.ax_right.pcolormesh(t, f, np.abs(Zxx), shading='gouraud')  # Use absolute value of Zxx
             self.ax_right.set_aspect('auto', adjustable='datalim')
             self.ax_right.set_title("Spectrogram")
